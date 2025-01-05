@@ -1,0 +1,5 @@
+ubuntu@ip-172-31-32-184:~/SampleMERNwithMicroservices$ docker ps
+CONTAINER ID   IMAGE                                         COMMAND                  CREATED              STATUS              PORTS                                       NAMES
+ff15f2a349f5   samplemernwithmicroservices_frontend          "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp   samplemernwithmicroservices_frontend_1
+881386209ff3   samplemernwithmicroservices_hello-service     "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:3001->3001/tcp, :::3001->3001/tcp   samplemernwithmicroservices_hello-service_1
+d37be2be99cf   samplemernwithmicroservices_profile-service   "docker-entrypoint.s…"   About a minute ago   Up About a minute   0.0.0.0:3002->3002/tcp, :::3002->3002/tcp   samplemernwithmicroservices_profile-service_1

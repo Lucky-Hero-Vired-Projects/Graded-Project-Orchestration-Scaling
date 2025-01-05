@@ -1,0 +1,122 @@
+http://35.88.112.173:8080
+http://35.93.65.171:8080
+
+810e67c63a524d63ae9f1d30ccaab0e6
+Final admin password --> cat /var/lib/jenkins/secrets/initialAdminPassword
+aac3dcfee04f460e9196d68d13601f7a
+
+
+sudo apt install docker-compose
+sudo usermod -aG docker $USER
+
+
+http://34.219.203.161:3000
+
+terraform plan -out=tfplan   # Generate a plan
+terraform apply -auto-approve tfplan  # Apply the plan without confirmation
+
+
+# Generate and apply a destroy plan
+terraform plan -destroy -out=tfdestroyplan  # Generate a destroy plan
+terraform apply -auto-approve tfdestroyplan  # Apply the destroy plan without confirmation
+# Generate and apply a plan
+terraform plan -out=tfplan  # Generate a plan
+terraform apply -auto-approve tfplan  # Apply the plan without confirmation
+
+
+terraform destroy -auto-approve && terraform apply -auto-approve
+terraform destroy -auto-approve; terraform apply -auto-approve
+
+All worked now 
+
+sudo systemctl status jenkins
+
+
+#jenkins install 
+sudo apt update -y && sudo apt upgrade -y
+sudo apt install openjdk-21-jdk -y
+java -version
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc]" https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
+/etc/apt/sources.list.d/jenkins.list > /dev/null
+sudo apt update -y
+sudo apt install jenkins -y
+sudo systemctl start jenkins && sudo systemctl enable jenkins
+sudo systemctl status jenkins
+sudo apt install apache2 -y
+sudo systemctl enable apache2 && sudo systemctl start apache2
+sudo systemctl status apache2
+sudo touch /etc/apache2/sites-available/jenkins.conf
+<Virtualhost *:80>
+    ServerName        yourdomain.com
+    ProxyRequests     Off
+    ProxyPreserveHost On
+    AllowEncodedSlashes NoDecode
+
+    
+      Order deny,allow
+      Allow from all
+    
+
+    ProxyPass         /  http://localhost:8080/ nocanon
+    ProxyPassReverse  /  http://localhost:8080/
+    ProxyPassReverse  /  http://yourdomain.com/
+</Virtualhost>
+sudo a2ensite jenkins
+sudo a2enmod headers
+sudo a2enmod rewrite
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo systemctl restart apache2
+
+### Very Imp command to see whether the AWS startup script has finished or not 
+sudo cat /var/log/cloud-init-output.log
+
+5 commands in one 
+======================
+docker stop profile-service-container && docker rm profile-service-container && docker run -d -p 3002:3002 --name profile-service-container samplemernwithmicroservices-profile-service:latest && docker logs profile-service-container
+
+docker-compose logs
+
+docker compose up and down commands 
+==================================================
+
+docker-compose down;docker-compose up -d --build
+
+
+
+Notes Additional configuration:
+=========================================
+
+ls -ld /home/ubuntu/SampleMERNwithMicroservices/backend/helloService && sudo chown -R $USER:$USER /home/ubuntu/SampleMERNwithMicroservices/backend/helloService && chmod -R u+w /home/ubuntu/SampleMERNwithMicroservices/backend/helloService && ls -ld /home/ubuntu/SampleMERNwithMicroservices/backend/helloService && ls -l /home/ubuntu/SampleMERNwithMicroservices/backend/helloService && rm -rf ~/.vscode-server && code .
+ls -ld /home/ubuntu/SampleMERNwithMicroservices/backend/profileService && sudo chown -R $USER:$USER /home/ubuntu/SampleMERNwithMicroservices/backend/profileService && chmod -R u+w /home/ubuntu/SampleMERNwithMicroservices/backend/profileService && ls -ld /home/ubuntu/SampleMERNwithMicroservices/backend/profileService && ls -l /home/ubuntu/SampleMERNwithMicroservices/backend/profileService && rm -rf ~/.vscode-server && code .
+ls -ld /home/ubuntu/SampleMERNwithMicroservices && sudo chown -R $USER:$USER /home/ubuntu/SampleMERNwithMicroservices && chmod -R u+w /home/ubuntu/SampleMERNwithMicroservices && ls -ld /home/ubuntu/SampleMERNwithMicroservices && ls -l /home/ubuntu/SampleMERNwithMicroservices && rm -rf ~/.vscode-server && code .
+
+
+MONGO_URL=mongodb+srv://prashanth153:92jd0Nn8LcP4m5B7@studentprashanth.cuzpigz.mongodb.net/tmbatch71
+PORT=3002
+
+chmod +x push_to_ecr.sh && sudo ./push_to_ecr.sh
+
+
+Jenkins Password --> cat /var/lib/jenkins/secrets/initialAdminPassword
+ubuntu@ip-172-31-40-52:~/SampleMERNwithMicroservices$ sudo cat /var/lib/jenkins/secrets/initialAdminPassword
+98f9492b44ea476a9be2c132ecd68c18
+
+sudo chmod +x /home/ubuntu/SampleMERNwithMicroservices/push_all_to_ecr.sh   # Grant execute permissions
+sudo chown jenkins:jenkins /home/ubuntu/SampleMERNwithMicroservices/push_all_to_ecr.sh  # Ensure the Jenkins user owns the file
+sudo usermod -aG ubuntu jenkins
+
+Push into ecr 
+aws ecr describe-repositories --repository-names pk1-a-repo --region us-west-2 >/dev/null 2>&1 && \
+aws ecr delete-repository --repository-name pk1-a-repo --region us-west-2 --force && \
+echo "Existing repository deleted." && \
+aws ecr create-repository --repository-name pk1-a-repo --region us-west-2 && \
+aws ecr get-login-password --region us-west-2 | docker login --username AWS --password-stdin 975050024946.dkr.ecr.us-west-2.amazonaws.com && \
+docker tag samplemernwithmicroservices-frontend 975050024946.dkr.ecr.us-west-2.amazonaws.com/pk1-a-repo:frontend && \
+docker tag samplemernwithmicroservices-profile-service 975050024946.dkr.ecr.us-west-2.amazonaws.com/pk1-a-repo:profile-service && \
+docker tag samplemernwithmicroservices-hello-service 975050024946.dkr.ecr.us-west-2.amazonaws.com/pk1-a-repo:hello-service && \
+docker push 975050024946.dkr.ecr.us-west-2.amazonaws.com/pk1-a-repo:frontend && \
+docker push 975050024946.dkr.ecr.us-west-2.amazonaws.com/pk1-a-repo:profile-service && \
+docker push 975050024946.dkr.ecr.us-west-2.amazonaws.com/pk1-a-repo:hello-service
+

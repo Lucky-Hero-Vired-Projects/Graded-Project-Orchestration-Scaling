@@ -1,0 +1,125 @@
+# Provider configuration
+provider "aws" {
+  region = "us-west-2"  # Replace with your desired region
+}
+
+# Define a security group
+resource "aws_security_group" "web_sg" {
+  name        = "studentpk-web-sg1"
+  description = "Allow HTTP, SSH, ICMP (ping), and custom Node.js application traffic"
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow SSH from anywhere
+  }
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow HTTP traffic from anywhere
+  }
+
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow Node.js backend traffic from anywhere
+  }
+
+  ingress {
+    from_port   = 3001
+    to_port     = 3001
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow Node.js frontend traffic from anywhere
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow Jenkins traffic from anywhere
+  }
+
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow ICMP (ping) from anywhere
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]  # Allow all outbound traffic
+  }
+}
+
+# Launch an EC2 instance
+resource "aws_instance" "my_instance" {
+  ami           = "ami-04dd23e62ed049936"  # Replace with a valid AMI ID for your region
+  instance_type = "t3.medium"              # Replace with your instance type
+  key_name      = "studentpk-key"          # Replace with your key pair name
+  security_groups = [aws_security_group.web_sg.name]
+
+  # Bootstrap script
+  user_data = <<-EOF
+    #!/bin/bash
+    # Update and install basic dependencies
+    sudo apt update -y && sudo apt install -y curl unzip tar git apache2 openjdk-21-jdk
+
+    # Install AWS CLI
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+
+    # Install eksctl
+    curl -L "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" -o eksctl.tar.gz
+    tar -xzf eksctl.tar.gz
+    sudo mv eksctl /usr/local/bin
+
+    # Install kubectl
+    curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+    sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+
+    # Install Docker
+    sudo apt install -y docker.io
+    sudo systemctl start docker
+    sudo systemctl enable docker
+
+    # Install Jenkins
+    wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc
+    echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
+    sudo apt update -y
+    sudo apt install -y jenkins
+    sudo systemctl start jenkins
+    sudo systemctl enable jenkins
+
+    # Configure Apache2 for Jenkins reverse proxy
+    echo '<VirtualHost *:80>
+    ServerName yourdomain.com
+    ProxyRequests Off
+    ProxyPreserveHost On
+    AllowEncodedSlashes NoDecode
+
+    <Proxy *>
+      Order deny,allow
+      Allow from all
+    </Proxy>
+
+    ProxyPass / http://localhost:8080/ nocanon
+    ProxyPassReverse / http://localhost:8080/
+    ProxyPassReverse / http://yourdomain.com/
+    </VirtualHost>' | sudo tee /etc/apache2/sites-available/jenkins.conf
+
+    sudo a2ensite jenkins
+    sudo systemctl reload apache2
+  EOF
+
+  tags = {
+    Name = "terraform-studentpk-bootstrap"
+  }
+}

@@ -1,0 +1,103 @@
+import boto3
+
+# Parameters (same as in the previous code)
+VPC_ID = "vpc-0321f38a7b594180d"  # Replace with your VPC ID
+SUBNET_IDS = [
+    "subnet-06bd72b2e4cb41d10",
+    "subnet-09bd0e0acc92d4efa",
+]  # Replace with your subnet IDs
+SECURITY_GROUP_ID = "sg-091b3da4f3bdc9d5b"  # Replace with your security group ID
+LOAD_BALANCER_NAME = "my-alb"
+AUTO_SCALING_GROUP_NAME = "backend-asg"
+TARGET_GROUP_NAME = "backend-target-group"
+
+# Initialize Boto3 clients
+ec2 = boto3.client("ec2")
+elbv2 = boto3.client("elbv2")
+autoscaling = boto3.client("autoscaling")
+
+# 1. Delete Auto Scaling Group
+def delete_auto_scaling_group():
+    autoscaling.delete_auto_scaling_group(
+        AutoScalingGroupName=AUTO_SCALING_GROUP_NAME,
+        ForceDelete=True,  # Force delete even if instances are still running
+    )
+    print(f"Auto Scaling Group {AUTO_SCALING_GROUP_NAME} deleted.")
+
+# 2. Terminate EC2 instances in the Auto Scaling Group
+def terminate_ec2_instances():
+    # Describe instances in the ASG
+    response = autoscaling.describe_auto_scaling_groups(
+        AutoScalingGroupNames=[AUTO_SCALING_GROUP_NAME]
+    )
+    
+    instances = response["AutoScalingGroups"][0]["Instances"]
+    instance_ids = [instance["InstanceId"] for instance in instances]
+    
+    # Terminate the instances
+    ec2.terminate_instances(InstanceIds=instance_ids)
+    print(f"Terminated EC2 instances: {instance_ids}")
+    return instance_ids  # Return the instance IDs for further use
+
+# 3. Delete the Load Balancer and Listener
+def delete_load_balancer():
+    # Describe and delete the listener associated with the load balancer
+    load_balancers = elbv2.describe_load_balancers(Names=[LOAD_BALANCER_NAME])
+    for lb in load_balancers["LoadBalancers"]:
+        lb_arn = lb["LoadBalancerArn"]
+        
+        # Delete the listener
+        listeners = elbv2.describe_listeners(LoadBalancerArn=lb_arn)
+        for listener in listeners["Listeners"]:
+            elbv2.delete_listener(
+                ListenerArn=listener["ListenerArn"]
+            )
+        
+        # Delete the load balancer
+        elbv2.delete_load_balancer(
+            LoadBalancerArn=lb_arn
+        )
+        print(f"Load Balancer {LOAD_BALANCER_NAME} and listeners deleted.")
+
+# 4. Delete the Target Group
+def delete_target_group(instance_ids):
+    target_groups = elbv2.describe_target_groups(Names=[TARGET_GROUP_NAME])
+    for tg in target_groups["TargetGroups"]:
+        tg_arn = tg["TargetGroupArn"]
+        
+        # Deregister targets (if any)
+        elbv2.deregister_targets(
+            TargetGroupArn=tg_arn,
+            Targets=[{"Id": instance_id} for instance_id in instance_ids]  # Add EC2 instance IDs if needed
+        )
+        
+        # Delete the target group
+        elbv2.delete_target_group(TargetGroupArn=tg_arn)
+        print(f"Target Group {TARGET_GROUP_NAME} deleted.")
+
+# 5. Delete the Security Group (if no other resources are using it)
+def delete_security_group():
+    # Delete the security group
+    ec2.delete_security_group(GroupId=SECURITY_GROUP_ID)
+    print(f"Security Group {SECURITY_GROUP_ID} deleted.")
+
+# 6. Delete the Subnets
+def delete_subnets():
+    for subnet_id in SUBNET_IDS:
+        ec2.delete_subnet(SubnetId=subnet_id)
+        print(f"Subnet {subnet_id} deleted.")
+
+# 7. Optionally, delete the VPC
+def delete_vpc():
+    ec2.delete_vpc(VpcId=VPC_ID)
+    print(f"VPC {VPC_ID} deleted.")
+
+# Run the cleanup process
+def cleanup():
+    instance_ids = terminate_ec2_instances()  # Get instance IDs from terminated instances
+    delete_auto_scaling_group()
+    delete_load_balancer()
+    delete_target_group(instance_ids)  # Pass instance_ids to delete_target_group
+
+# Execute cleanup
+cleanup()
